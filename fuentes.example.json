@@ -1,0 +1,9 @@
+{
+  "maestria": {
+    "descripcion": "Course materials, one folder per course (PDF, .ipynb and .md files)",
+    "carpetas": {
+      "neural-networks": "materials/neural-networks",
+      "big-data": "materials/big-data"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+# Local data: the vector store holds text from copyrighted course materials
+base_chroma/
+materials/
+fuentes.json
+
+# Embedding model cache (~240 MB, downloaded on first run)
+modelos/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# promptfoo local state and outputs (contain retrieved text)
+eval/.promptfoo/
+eval/resultados.json

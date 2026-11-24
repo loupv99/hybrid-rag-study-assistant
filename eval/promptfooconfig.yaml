@@ -1,0 +1,56 @@
+# Evaluacion de RECUPERACION del RAG (no usa LLM: cero costo).
+# Acierto = algun trozo del top-5 viene de un archivo esperado. Puntaje = 1/posicion del primero (MRR).
+# Archivos esperados verificados por busqueda literal en la base (2026-11-09).
+description: RAG maestria - semantico vs hibrido
+sharing: false
+
+prompts:
+  - "{{pregunta}}"
+
+providers:
+  - id: file://proveedor.py
+    label: semantico
+    config: { modo: semantico, pythonExecutable: ../.venv/Scripts/python.exe }
+  - id: file://proveedor.py
+    label: hibrido
+    config: { modo: hibrido, pythonExecutable: ../.venv/Scripts/python.exe }
+
+defaultTest:
+  assert:
+    - type: javascript
+      value: |
+        const r = JSON.parse(output);
+        const max = Math.max(...r.map(x => x.sim));
+        const esp = context.vars.esperados ? context.vars.esperados.split('|') : [];
+        if (!esp.length) {               // pregunta trampa: el tema NO esta en el material
+          return { pass: max < 0.55, score: max < 0.55 ? 1 : 0, reason: `trampa: similitud max ${max.toFixed(2)} (debe ser < 0.55)` };
+        }
+        const i = r.findIndex(x => esp.includes(x.archivo));
+        return { pass: i >= 0, score: i >= 0 ? 1 / (i + 1) : 0,
+                 reason: i >= 0 ? `acierto en posicion ${i + 1} (${r[i].archivo} p.${r[i].pagina}, sim ${r[i].sim})`
+                                : `fallo: trajo ${[...new Set(r.map(x => x.archivo))].join(', ')}` };
+
+tests:
+  - vars: { pregunta: "como se calcula el gradiente hacia atras con la regla de la cadena", termino: "Backpropagation", esperados: "cs231n_2017_lecture4.pdf|Practica_2_Backprop_CNN.pdf" }
+  - vars: { pregunta: "por que AlexNet apaga neuronas al azar durante el entrenamiento", termino: "dropout", esperados: "AlexNetPaper.pdf|AlexNet_Lecture_Notes.pdf|Practica_3_LeNet_AlexNet.pdf|AlexNet_Companion_Notebook.ipynb" }
+  - vars: { pregunta: "por que VGG apila solo filtros pequenos", termino: "3 × 3", esperados: "1409.1556v6.pdf|vggnet_googlenet_clase.pdf|Lab_VGGNet_GoogLeNet.ipynb" }
+  - vars: { pregunta: "que es el modulo Inception de GoogLeNet", termino: "Inception", esperados: "GooGleNet.pdf|vggnet_googlenet_clase.pdf|cs231n_2017_lecture9.pdf|Lab_VGGNet_GoogLeNet.ipynb" }
+  - vars: { pregunta: "que problema resuelven los atajos de identidad en redes muy profundas", termino: "residual", esperados: "ResNet.pdf|ResNet_Notas_de_Clase.pdf|resnet_transfer_learning_clase.pdf|cs231n_2017_lecture9.pdf" }
+  - vars: { pregunta: "como reutilizo una red preentrenada en ImageNet para otra tarea", termino: "Transfer Learning", esperados: "resnet_transfer_learning_clase.pdf|Lab_ResNet_TransferLearning.ipynb" }
+  - vars: { pregunta: "para que sirven las conexiones entre codificador y decodificador en U-Net", termino: "skip connection", esperados: "UNet.pdf|UNet_Notas_de_Clase.pdf|Clase09_UNet_v2.ipynb|UNet_Football_Segmentation_Colab.ipynb" }
+  - vars: { pregunta: "como divide YOLO la imagen para detectar objetos", termino: "grid", esperados: "Yolo_paper_original.pdf|YOLO_Notas_de_Clase.pdf|Clase_6_DeepLearning_Yolo.pdf" }
+  - vars: { pregunta: "que metrica mide cuanto se superpone la caja predicha con la real", termino: "IoU", esperados: "YOLO_Notas_de_Clase.pdf|Lab07_YOLO_Roboflow.ipynb|Clase09_UNet_v2.ipynb|Yolo_paper_original.pdf|Clase_6_DeepLearning_Yolo.pdf" }
+  - vars: { pregunta: "que es el descenso de gradiente y como se elige el tamano del paso", termino: "descenso", esperados: "bishop_cap7_descenso_gradiente.pdf|resumen_lecun98.pdf|lecun-98.pdf" }
+  - vars: { pregunta: "que libreria de Spark se usa para machine learning distribuido", termino: "MLlib", esperados: "04-ml-distribuido-spark-mllib.pdf" }
+  - vars: { pregunta: "como guarda Hadoop archivos repartidos en varias maquinas", termino: "HDFS", esperados: "02-arquitecturas-y-tecnologias.pdf|03-procesamiento-big-data.pdf" }
+  - vars: { pregunta: "cuales son las caracteristicas que definen al big data", termino: "Volumen", esperados: "01-introduccion-big-data.pdf" }
+  - vars: { pregunta: "como se crea el cluster en la nube de Amazon para el laboratorio de Spark", termino: "EMR", esperados: "03-lab1-spark-emr.pdf|03-guia-acceso-aws-academy.pdf" }
+  - vars: { pregunta: "como armo un tablero visual en el laboratorio 3", termino: "Tableau", esperados: "06-lab3-tableau.pdf" }
+  # 2026-11-09: con la teoria (papers + blog Alammar) self-attention SI esta -> paso de trampa a pregunta normal
+  - vars: { pregunta: "explica el mecanismo de self-attention con queries, keys y values", termino: "Self-Attention", esperados: "illustrated-gpt2.md|illustrated-transformer.md|cap03-attention-is-all-you-need-1706.03762.pdf" }
+  - vars: { pregunta: "como se ajusta un modelo grande entrenando pocas matrices de bajo rango", termino: "LoRA", esperados: "cap12-lora-2106.09685.pdf|cap12-qlora-2305.14314.pdf|Chapter 12 - Fine-tuning Generation Models.ipynb" }
+  - vars: { pregunta: "como combina un modelo generativo con un buscador de documentos para responder", termino: "retrieval", esperados: "cap08-rag-lewis-2005.11401.pdf|Chapter 8 - Semantic Search.ipynb|illustrated-retrieval-transformer.md" }
+  # Trampas: temas verificados como AUSENTES por busqueda literal (2026-11-09)
+  - vars: { pregunta: "como funciona Q-learning y la ecuacion de Bellman", termino: "Bellman", esperados: "" }
+  - vars: { pregunta: "como estima la posicion un filtro de Kalman", termino: "Kalman", esperados: "" }
+  - vars: { pregunta: "como funciona el paso de mensajes en una red neuronal de grafos", termino: "message passing", esperados: "" }
